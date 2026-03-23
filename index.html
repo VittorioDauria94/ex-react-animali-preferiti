@@ -38,7 +38,8 @@
             content,
             show = false,
             onClose = () => { },
-            onConfirm = () => { }
+            onConfirm = () => { },
+            loading = false
         }) {
             return show && ReactDOM.createPortal(
                 <div className="modal-container">
@@ -50,11 +51,20 @@
                         </div>
 
                         <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={onClose}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={onClose}
+                                disabled={loading}
+                            >
                                 Annulla
                             </button>
-                            <button className="btn btn-primary" onClick={onConfirm}>
-                                Conferma
+
+                            <button
+                                className="btn btn-primary"
+                                onClick={onConfirm}
+                                disabled={loading}
+                            >
+                                {loading ? "Caricamento..." : "Conferma"}
                             </button>
                         </div>
                     </div>
@@ -67,50 +77,125 @@
             const [animals, setAnimals] = useState([]);
             const [showModal, setShowModal] = useState(false);
             const [animalName, setAnimalName] = useState("");
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState("");
+
+            const defaultImage = "https://placehold.co/400x250?text=No+Image";
 
             function handleOpenModal() {
                 setShowModal(true);
+                setAnimalName("");
+                setError("");
             }
 
             function handleCloseModal() {
+                if (loading) return;
+
                 setShowModal(false);
                 setAnimalName("");
+                setError("");
             }
 
-            function handleConfirm() {
+            async function handleConfirm() {
+                if (loading) return;
 
+                if (!animalName) {
+                    setError("Inserisci il nome di un animale");
+                    return;
+                }
 
-                setAnimals((prevAnimals) => [...prevAnimals, animalName]);
-                setAnimalName("");
-                setShowModal(false);
+                setLoading(true);
+                setError("");
+
+                try {
+                    const response = await fetch(
+                        `http://localhost:3333/animals?search=${animalName}`
+                    );
+
+                    if (!response.ok) {
+                        throw new Error("Errore nella risposta del server");
+                    }
+
+                    const data = await response.json();
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        setError("Nessun animale trovato");
+                        return;
+                    }
+
+                    const firstAnimal = data[0];
+
+                    const animalCard = {
+                        name: firstAnimal.name || animalName,
+                        description: firstAnimal.description || "Descrizione non disponibile",
+                        image: firstAnimal.image || defaultImage
+                    };
+
+                    setAnimals((prevAnimals) => [...prevAnimals, animalCard]);
+                    setShowModal(false);
+                    setAnimalName("");
+                    setError("");
+                } catch (err) {
+                    setError("Errore durante la ricerca dell'animale");
+                } finally {
+                    setLoading(false);
+                }
             }
 
             return (
                 <div className="container">
                     <button onClick={handleOpenModal}>Aggiungi Animale</button>
 
-                    <details>
-                        <summary>Animali</summary>
-                        <ul>
-                            {animals.map((animal, i) => (
-                                <li key={i}>{animal}</li>
+                    {animals.length > 0 ? (
+                        <section className="cards-grid">
+                            {animals.map((animal, index) => (
+                                <article className="animal-card" key={index}>
+                                    
+                                    <img
+                                        src={animal.image}
+                                        alt={animal.name}
+                                        className="animal-card-image" />
+
+                                    <div className="animal-card-body">
+                                        <h3>{animal.name}</h3>
+                                        <p>{animal.description}</p>
+                                    </div>
+                                </article>
                             ))}
-                        </ul>
-                    </details>
+                        </section>
+                    ) : (
+                        <p className="empty-message">Nessun animale aggiunto.</p>
+                    )}
 
                     <Modal
                         title="Aggiungi un animale"
                         show={showModal}
                         onClose={handleCloseModal}
                         onConfirm={handleConfirm}
+                        loading={loading}
                         content={
-                            <input
-                                type="text"
-                                placeholder="Scrivi il nome di un animale"
-                                value={animalName}
-                                onChange={(e) => setAnimalName(e.target.value)}
-                                className="modal-input"
-                            />
+                            <div className="modal-form">
+                                <input
+                                    type="text"
+                                    placeholder="Scrivi il nome di un animale"
+                                    value={animalName}
+                                    onChange={(e) => {
+                                        setAnimalName(e.target.value);
+                                        if (error) {
+                                            setError("");
+                                        }
+                                    }}
+                                    className="modal-input"
+                                    disabled={loading}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            handleConfirm();
+                                        }
+                                    }}
+                                />
+
+                                {error && <p className="error-message">{error}</p>}
+                            </div>
                         }
                     />
                 </div>
