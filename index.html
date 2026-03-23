@@ -2,60 +2,123 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>I miei animali Preferiti</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
+
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="text/babel">
-        const { createRoot } = ReactDOM;
-        const { useState } = React;
-
-        const animalsChoice = ["Cane", "Gatto", "Pappagallo", "Cavallo", "Panda"];
-
-
-        const ReactApp = () => {
-            const [animals, setAnimals] = useState([])
-            return <div className="container">
-                <button onClick={() => {
-                    const randomAnimal = Math.floor(Math.random() * animalsChoice.length)
-                    setAnimals((prevAnimals) => [
-                        ...prevAnimals,
-                        animalsChoice[randomAnimal],
-                    ]);
-                }
-                }>Aggiungi Animale</button>
-                <details>
-                    <summary>Animali</summary>
-                    <ul>
-                        {animals.map((animal, i) => <li key={i}>{animal}</li>)}
-                    </ul>
-
-                </details>
-            </div>
-        };
-
-        createRoot(document.querySelector('.lista-animali')).render(<ReactApp />)
-
-    </script>
-
 </head>
 
 <body>
     <header>
         <h1>I miei animali Preferiti</h1>
     </header>
+
     <main>
         <figure>
-            <img src="https://picsum.photos/400/300" alt="Immagine Casuale">
+            <img src="https://picsum.photos/400/300" alt="Immagine Casuale" />
         </figure>
+
         <div class="lista-animali"></div>
     </main>
+
     <footer>
         <p>Creato con amore da... un collega sbadato! 🐾</p>
     </footer>
+
+    <script type="text/babel">
+        const { createRoot } = ReactDOM;
+        const { useState } = React;
+
+        function Modal({
+            title,
+            content,
+            show = false,
+            onClose = () => { },
+            onConfirm = () => { }
+        }) {
+            return show && ReactDOM.createPortal(
+                <div className="modal-container">
+                    <div className="modal">
+                        <h2>{title}</h2>
+
+                        <div className="modal-content">
+                            {content}
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary" onClick={onClose}>
+                                Annulla
+                            </button>
+                            <button className="btn btn-primary" onClick={onConfirm}>
+                                Conferma
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            );
+        }
+
+        const ReactApp = () => {
+            const [animals, setAnimals] = useState([]);
+            const [showModal, setShowModal] = useState(false);
+            const [animalName, setAnimalName] = useState("");
+
+            function handleOpenModal() {
+                setShowModal(true);
+            }
+
+            function handleCloseModal() {
+                setShowModal(false);
+                setAnimalName("");
+            }
+
+            function handleConfirm() {
+
+
+                setAnimals((prevAnimals) => [...prevAnimals, animalName]);
+                setAnimalName("");
+                setShowModal(false);
+            }
+
+            return (
+                <div className="container">
+                    <button onClick={handleOpenModal}>Aggiungi Animale</button>
+
+                    <details>
+                        <summary>Animali</summary>
+                        <ul>
+                            {animals.map((animal, i) => (
+                                <li key={i}>{animal}</li>
+                            ))}
+                        </ul>
+                    </details>
+
+                    <Modal
+                        title="Aggiungi un animale"
+                        show={showModal}
+                        onClose={handleCloseModal}
+                        onConfirm={handleConfirm}
+                        content={
+                            <input
+                                type="text"
+                                placeholder="Scrivi il nome di un animale"
+                                value={animalName}
+                                onChange={(e) => setAnimalName(e.target.value)}
+                                className="modal-input"
+                            />
+                        }
+                    />
+                </div>
+            );
+        };
+
+        createRoot(document.querySelector(".lista-animali")).render(<ReactApp />);
+    </script>
 </body>
 
 </html>
